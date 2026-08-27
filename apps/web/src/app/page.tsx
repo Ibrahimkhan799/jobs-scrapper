@@ -34,6 +34,10 @@ type Dashboard = {
 export default function DashboardPage() {
   const queryClient = useQueryClient();
   const dash = useQuery({ queryKey: ['dashboard'], queryFn: () => api<Dashboard>('/dashboard') });
+  const ai = useQuery({
+    queryKey: ['ai-status'],
+    queryFn: () => api<{ message: string; mode: string }>('/ai/status'),
+  });
   const search = useMutation({
     mutationFn: () => apiSend<{ created: number; updated: number }>('/jobs/search', 'POST', {}),
     onSuccess: (result: { created: number; updated: number }) => {
@@ -60,7 +64,7 @@ export default function DashboardPage() {
     <div>
       <PageHeader
         title="Today"
-        description="Job Match Score is profile-to-job similarity, not a chance of being hired."
+        description={`${ai.data?.message ?? 'Profile parsing and emails work without AI.'} Job Match Score is profile-to-job similarity, not a chance of being hired.`}
         actions={
           <Button onClick={() => search.mutate()} disabled={search.isPending}>
             {search.isPending ? 'Searching…' : 'Run search now'}

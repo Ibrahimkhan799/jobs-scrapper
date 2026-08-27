@@ -27,7 +27,7 @@ const envSchema = z.object({
   OLLAMA_MODEL: z.string().default('llama3.2'),
   OPENAI_API_KEY: empty,
   GEMINI_API_KEY: empty,
-  AI_PROVIDER: z.enum(['ollama', 'openai', 'gemini', 'heuristic']).default('ollama'),
+  AI_PROVIDER: z.enum(['ollama', 'openai', 'gemini', 'heuristic', 'grok', 'groq', 'openrouter', 'together', 'custom']).default('ollama'),
   SMTP_HOST: empty,
   SMTP_PORT: z.coerce.number().int().positive().default(587),
   SMTP_USER: empty,

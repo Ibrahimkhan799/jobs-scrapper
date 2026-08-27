@@ -129,7 +129,10 @@ export const applicationStatusPatchSchema = z.object({
 export const applicationEmailDraftSchema = z.object({
   subject: z.string().min(3).max(200),
   body: z.string().min(40).max(8000),
-  recipientEmail: z.string().email().nullable().optional(),
+  recipientEmail: z.preprocess(
+    (value) => (value === '' ? null : value),
+    z.string().email().nullable().optional(),
+  ),
   attachCv: z.boolean().optional(),
 });
 
@@ -162,6 +165,15 @@ export const userSettingsSchema = z.object({
   discoveryIntervalHours: z.number().int().min(1).max(168).optional(),
   minMatchScore: z.number().int().min(0).max(100).optional(),
   followUpAfterDays: z.number().int().min(1).max(60).optional(),
+  emailTemplateSubject: z.preprocess(
+    (value) => (value === '' ? null : value),
+    z.string().min(3).max(200).nullable().optional(),
+  ),
+  emailTemplateBody: z.preprocess(
+    (value) => (value === '' ? null : value),
+    z.string().min(40).max(8000).nullable().optional(),
+  ),
+  activeAiCredentialId: z.string().nullable().optional(),
   matchWeights: z
     .object({
       requiredSkills: z.number(),
@@ -173,6 +185,15 @@ export const userSettingsSchema = z.object({
       salary: z.number(),
     })
     .optional(),
+});
+
+export const aiCredentialSchema = z.object({
+  provider: z.string().min(1).max(40),
+  label: z.string().min(1).max(80),
+  apiKey: z.string().max(500).optional(),
+  baseUrl: z.string().max(300).optional(),
+  model: z.string().max(120).optional(),
+  enabled: z.boolean().optional(),
 });
 
 export const emailAccountSchema = z.object({

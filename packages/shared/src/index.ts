@@ -9,4 +9,5 @@ export * from './matching.js';
 export * from './queries.js';
 export * from './cv.js';
 export * from './email.js';
+export * from './ai-presets.js';
 export * from './schemas.js';

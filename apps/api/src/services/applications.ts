@@ -6,6 +6,7 @@ import {
   type ApplicationStatus as Status,
 } from '@job-hunter/shared';
 import { env } from '../env.js';
+import { logger } from '../logger.js';
 import { badRequest, notFound } from '../lib/errors.js';
 import { storage } from '../storage/local.js';
 import { accountEmailProvider, envEmailProvider } from '../email/providers.js';
@@ -57,16 +58,24 @@ export async function generateApplication(userId: string, jobId: string) {
     portfolioUrl: profile.portfolioUrl,
   };
 
-  let email = generateApplicationEmail(candidate, {
-    title: job.title,
-    company: job.company.name,
-    location: job.location,
-    matchedSkills: asStrings(job.matches[0]?.matchedSkills),
-  });
+  const settings = await prisma.userSettings.findUnique({ where: { userId } });
+  let email = generateApplicationEmail(
+    candidate,
+    {
+      title: job.title,
+      company: job.company.name,
+      location: job.location,
+      matchedSkills: asStrings(job.matches[0]?.matchedSkills),
+    },
+    {
+      subject: settings?.emailTemplateSubject,
+      body: settings?.emailTemplateBody,
+    },
+  );
 
   try {
-    const provider = await getAiProvider();
-    if (await provider.available()) {
+    const provider = await getAiProvider(userId);
+    if (provider.id !== 'heuristic' && (await provider.available())) {
       const ai = await provider.completeJson(
         `Write a concise, professional application email. Use only facts from the candidate. Never invent achievements.
 Return JSON { "subject": string, "body": string }
@@ -79,7 +88,7 @@ Job: ${JSON.stringify({ title: job.title, company: job.company.name, location: j
       if (check.ok) email = parsed;
     }
   } catch {
-    // keep template email
+    // keep template email — AI is optional
   }
 
   const application = await createOrGetApplication(userId, jobId);
@@ -88,8 +97,8 @@ Job: ${JSON.stringify({ title: job.title, company: job.company.name, location: j
     data: {
       generatedSubject: email.subject,
       generatedBody: email.body,
-      editedSubject: email.subject,
-      editedBody: email.body,
+      editedSubject: application.editedSubject ?? email.subject,
+      editedBody: application.editedBody ?? email.body,
       status: application.status === 'MATCHED' || application.status === 'DISCOVERED' ? 'REVIEW' : application.status,
       method: job.applicationEmail ? 'EMAIL' : 'MANUAL',
       recipientEmail: job.applicationEmail,
@@ -99,14 +108,95 @@ Job: ${JSON.stringify({ title: job.title, company: job.company.name, location: j
     await prisma.applicationStatusEvent.create({
       data: { applicationId: updated.id, fromStatus: application.status, toStatus: 'REVIEW' },
     });
+    const auto = settings?.allowAutomatedSending && Boolean(updated.recipientEmail);
+    const score = job.matches[0]?.matchScore ?? 0;
+    const meets = score >= (settings?.minMatchScore ?? 80);
+    if (auto && meets) {
+      try {
+        return await sendApplication(userId, updated.id);
+      } catch (error) {
+        logger.warn({ err: error, applicationId: updated.id }, 'Auto-send skipped');
+      }
+    }
     await notify(userId, {
       type: 'REVIEW',
       title: 'Application needs review',
-      body: `${job.title} at ${job.company.name} is ready to review. Sending stays off until you approve.`,
+      body: `${job.title} at ${job.company.name} is ready to edit. Sending stays off unless auto-send is enabled in Settings.`,
       href: `/applications/${updated.id}`,
     });
   }
   return updated;
+}
+
+export async function saveApplicationDraft(
+  userId: string,
+  applicationId: string,
+  draft: { subject?: string; body?: string; recipientEmail?: string | null; attachCv?: boolean },
+) {
+  const application = await getOwnedApplication(userId, applicationId);
+  return prisma.application.update({
+    where: { id: application.id },
+    data: {
+      editedSubject: draft.subject ?? application.editedSubject,
+      editedBody: draft.body ?? application.editedBody,
+      recipientEmail: draft.recipientEmail === undefined ? application.recipientEmail : draft.recipientEmail,
+      attachCv: draft.attachCv ?? application.attachCv,
+    },
+  });
+}
+
+export async function processAutomatedSends(userId: string) {
+  const settings = await prisma.userSettings.findUnique({ where: { userId } });
+  if (!settings?.allowAutomatedSending) {
+    return { sent: 0, skipped: 0, reason: 'auto-send is off' };
+  }
+  const profile = await prisma.candidateProfile.findUnique({ where: { userId } });
+  if (!profile) return { sent: 0, skipped: 0, reason: 'no profile' };
+
+  const sentToday = await prisma.application.count({
+    where: { userId, sentAt: { gte: startOfDay() } },
+  });
+  const remaining = Math.max(0, (settings.dailyApplicationLimit ?? 10) - sentToday);
+  if (remaining === 0) return { sent: 0, skipped: 0, reason: 'daily limit reached' };
+
+  const matches = await prisma.jobMatch.findMany({
+    where: {
+      candidateProfileId: profile.id,
+      matchScore: { gte: settings.minMatchScore },
+      job: { applicationEmail: { not: null }, archived: false },
+    },
+    include: { job: { include: { applications: { where: { userId }, take: 1 } } } },
+    orderBy: { matchScore: 'desc' },
+    take: remaining + 5,
+  });
+
+  let sent = 0;
+  let skipped = 0;
+  for (const match of matches) {
+    if (sent >= remaining) break;
+    const existing = match.job.applications[0];
+    if (existing?.sentAt) continue;
+    if (existing && ['REJECTED', 'ARCHIVED', 'APPLIED', 'INTERVIEW', 'OFFER', 'RESPONSE'].includes(existing.status)) {
+      continue;
+    }
+    try {
+      const application = await generateApplication(userId, match.jobId);
+      if (application.sentAt) {
+        sent += 1;
+        continue;
+      }
+      if (!application.recipientEmail) {
+        skipped += 1;
+        continue;
+      }
+      await sendApplication(userId, application.id);
+      sent += 1;
+    } catch (error) {
+      skipped += 1;
+      logger.warn({ err: error, jobId: match.jobId }, 'Automated send failed for job');
+    }
+  }
+  return { sent, skipped };
 }
 
 export async function approveApplication(userId: string, applicationId: string, draft?: {

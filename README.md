@@ -8,8 +8,8 @@ Local-first web app for discovering jobs, scoring them against a CV, and sending
 
 - Next.js (web) + Fastify (API) + TypeScript
 - PostgreSQL + Prisma
-- Ollama by default (OpenAI / Gemini optional)
-- Playwright-ready scraper architecture with working public API sources (Remotive, RemoteOK, Arbeitnow, RSS, Greenhouse boards)
+- Ollama by default; Grok / Groq / OpenRouter / Together / OpenAI / Gemini / custom OpenAI-compatible keys in Settings
+- Public job APIs only (Remotive, RemoteOK, Arbeitnow, RSS, Greenhouse). LinkedIn and Indeed are not scraped.
 - Nodemailer SMTP (Gmail / Outlook presets)
 
 No n8n, Zapier, or Make.
@@ -49,9 +49,11 @@ If you are not using Docker, create a local PostgreSQL database and set `DATABAS
 
 ## Safety
 
-- Applications are never emailed automatically unless you enable automated sending.
+- Applications are never emailed automatically unless you enable **Allow auto-send** in Settings.
 - Daily application limits are enforced.
+- LinkedIn and Indeed are not scraped (login walls + terms). Discovery uses public APIs/feeds only.
 - Scrapers fail closed: blocked sites are not bypassed.
-- SMTP passwords and API keys are never returned to the frontend.
+- SMTP passwords and API keys are never returned to the frontend in full.
+- Without AI, CV parsing and application emails still work. You can edit the profile and the email template.
 
 Seed data uses clearly labeled demo companies and is not real job inventory.

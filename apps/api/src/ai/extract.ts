@@ -12,7 +12,7 @@ export async function extractProfileFromCv(cvText: string): Promise<{
   const heuristic = heuristicProfile(cvText);
   try {
     const provider = await getAiProvider();
-    if (!(await provider.available())) {
+    if (provider.id === 'heuristic' || !(await provider.available())) {
       return { profile: heuristic, provider: 'heuristic' };
     }
     const profile = await provider.completeJson(cvExtractionPrompt(cvText), extractedProfileSchema);

@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { prisma } from '@job-hunter/database';
 import { ingestRawJobs } from './services/ingestion.js';
-import { generateApplication, sendApplication } from './services/applications.js';
+import { generateApplication, processAutomatedSends, sendApplication } from './services/applications.js';
 import { MemoryEmailProvider, setEmailProviderForTests } from './email/providers.js';
 import { registerSources } from './scrapers/index.js';
 
@@ -97,5 +97,19 @@ describe('application + mock email', () => {
     expect(memory.sent.length).toBeGreaterThan(0);
     expect(memory.sent.at(-1)?.to).toBe('jobs@fixture.example');
     expect(memory.sent.at(-1)?.subject).toContain('TypeScript Developer');
+  });
+
+  it('does not auto-send unless Settings allowAutomatedSending is on', async () => {
+    const user = await prisma.user.findUniqueOrThrow({ where: { email: 'demo@jobhunter.local' } });
+    await prisma.userSettings.upsert({
+      where: { userId: user.id },
+      update: { allowAutomatedSending: false },
+      create: { userId: user.id, allowAutomatedSending: false },
+    });
+    const before = memory.sent.length;
+    const result = await processAutomatedSends(user.id);
+    expect(result.reason).toBe('auto-send is off');
+    expect(result.sent).toBe(0);
+    expect(memory.sent.length).toBe(before);
   });
 });

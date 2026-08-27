@@ -71,7 +71,7 @@ export default function ProfilePage() {
     <div>
       <PageHeader
         title="Candidate profile"
-        description="Upload a CV. The parser does not invent experience that is not in the file."
+        description="Upload a CV. Parsing works without AI. Edit any field afterward — nothing is invented if it was not in the file."
       />
       <div className="mb-6 rounded-md border border-border p-3">
         <Label>Resume (PDF or DOCX)</Label>

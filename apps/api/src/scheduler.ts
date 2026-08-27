@@ -3,6 +3,7 @@ import { prisma } from '@job-hunter/database';
 import { logger } from './logger.js';
 import { runDiscovery } from './services/ingestion.js';
 import { notify } from './services/context.js';
+import { processAutomatedSends } from './services/applications.js';
 
 let started = false;
 
@@ -22,6 +23,10 @@ export function startScheduler(): void {
         if (Date.now() - last < hours * 60 * 60 * 1000) continue;
         logger.info({ searchProfileId: profile.id }, 'Scheduled discovery starting');
         await runDiscovery(profile.userId, profile.id);
+        if (profile.user.settings?.allowAutomatedSending) {
+          const result = await processAutomatedSends(profile.userId);
+          logger.info({ userId: profile.userId, ...result }, 'Automated send pass');
+        }
       }
 
       const due = await prisma.application.findMany({

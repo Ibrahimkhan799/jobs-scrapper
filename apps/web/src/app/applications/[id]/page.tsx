@@ -41,24 +41,38 @@ export default function ApplicationReviewPage() {
   });
   const [subject, setSubject] = useState<string | null>(null);
   const [body, setBody] = useState<string | null>(null);
+  const [recipient, setRecipient] = useState<string | null>(null);
   const [confirm, setConfirm] = useState(false);
 
-  const save = useMutation({
-    mutationFn: () =>
-      apiSend(`/applications/${params.id}/approve`, 'POST', {
-        subject: subject ?? query.data?.editedSubject ?? query.data?.generatedSubject,
-        body: body ?? query.data?.editedBody ?? query.data?.generatedBody,
-        recipientEmail: query.data?.recipientEmail,
-      }),
+  const draftPayload = () => ({
+    subject: subject ?? query.data?.editedSubject ?? query.data?.generatedSubject,
+    body: body ?? query.data?.editedBody ?? query.data?.generatedBody,
+    recipientEmail: recipient === null ? query.data?.recipientEmail : recipient || null,
+  });
+
+  const saveDraft = useMutation({
+    mutationFn: () => apiSend(`/applications/${params.id}/draft`, 'PATCH', draftPayload()),
     onSuccess: () => {
-      toast.success('Approved. Email is not sent until you click Send.');
+      toast.success('Draft saved. You can keep editing — no AI required.');
+      queryClient.invalidateQueries({ queryKey: ['application', params.id] });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const save = useMutation({
+    mutationFn: () => apiSend(`/applications/${params.id}/approve`, 'POST', draftPayload()),
+    onSuccess: () => {
+      toast.success('Approved. Email is not sent until you click Send unless auto-send is on.');
       queryClient.invalidateQueries({ queryKey: ['application', params.id] });
     },
     onError: (error: Error) => toast.error(error.message),
   });
 
   const send = useMutation({
-    mutationFn: () => apiSend(`/applications/${params.id}/send`, 'POST'),
+    mutationFn: async () => {
+      await apiSend(`/applications/${params.id}/approve`, 'POST', draftPayload());
+      return apiSend(`/applications/${params.id}/send`, 'POST');
+    },
     onSuccess: () => {
       toast.success('Application sent.');
       setConfirm(false);
@@ -72,20 +86,24 @@ export default function ApplicationReviewPage() {
   const app = query.data;
   const sub = subject ?? app.editedSubject ?? app.generatedSubject ?? '';
   const text = body ?? app.editedBody ?? app.generatedBody ?? '';
+  const to = recipient ?? app.recipientEmail ?? '';
   const score = app.job.matches[0]?.matchScore;
 
   return (
     <div>
       <PageHeader
         title="Review application"
-        description={`${app.job.title} · ${app.job.company.name}`}
+        description={`${app.job.title} · ${app.job.company.name}. Edit the email even if no AI is configured.`}
         actions={
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => router.back()}>Cancel</Button>
+            <Button variant="ghost" onClick={() => saveDraft.mutate()} disabled={saveDraft.isPending}>
+              Save edits
+            </Button>
             <Button variant="secondary" onClick={() => save.mutate()} disabled={save.isPending}>
               Approve
             </Button>
-            <Button onClick={() => setConfirm(true)} disabled={!app.recipientEmail}>
+            <Button onClick={() => setConfirm(true)} disabled={!to}>
               Approve & Send
             </Button>
           </div>
@@ -106,7 +124,7 @@ export default function ApplicationReviewPage() {
         <div className="space-y-3">
           <div>
             <Label>Recipient</Label>
-            <Input value={app.recipientEmail ?? ''} readOnly />
+            <Input value={to} onChange={(e) => setRecipient(e.target.value)} placeholder="recruiter@company.com" />
           </div>
           <div>
             <Label>Subject</Label>

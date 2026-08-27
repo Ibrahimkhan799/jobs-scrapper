@@ -7,6 +7,7 @@ import { scoreJobMatch } from './matching.js';
 import { generateSearchQueries } from './queries.js';
 import { generateApplicationEmail, validateGeneratedEmail } from './email.js';
 import { recommendationFromScore } from './constants.js';
+import { AI_PROVIDER_PRESETS, presetById } from './ai-presets.js';
 
 describe('salary parsing', () => {
   it('parses k-notation ranges', () => {
@@ -194,5 +195,33 @@ describe('email generation', () => {
     expect(email.body).toContain('Sam Rivera');
     expect(email.body).not.toMatch(/increased \d+%/i);
     expect(validateGeneratedEmail(email, candidate)).toEqual({ ok: true });
+  });
+
+  it('applies a user-edited template without AI', () => {
+    const candidate = {
+      fullName: 'Sam Rivera',
+      email: 'sam@example.com',
+      skills: ['React'],
+      previousJobs: [{ title: 'Frontend Developer', company: 'Northwind Labs (Demo)' }],
+    };
+    const email = generateApplicationEmail(
+      candidate,
+      { title: 'React Developer', company: 'Harbor Pine Digital (Demo)' },
+      {
+        subject: 'Hi {{company}} — {{jobTitle}}',
+        body: 'Hello,\n\nI am {{fullName}} applying for {{jobTitle}}. Skills: {{skills}}.\n\nThanks,\n{{fullName}}\n{{email}}',
+      },
+    );
+    expect(email.subject).toBe('Hi Harbor Pine Digital (Demo) — React Developer');
+    expect(email.body).toContain('I am Sam Rivera applying for React Developer');
+    expect(email.body).toContain('Skills: React');
+  });
+});
+
+describe('AI provider presets', () => {
+  it('includes Grok and a custom OpenAI-compatible option', () => {
+    expect(presetById('grok')?.baseUrl).toBe('https://api.x.ai/v1');
+    expect(presetById('groq')?.baseUrl).toContain('groq.com');
+    expect(AI_PROVIDER_PRESETS.some((preset) => preset.id === 'custom')).toBe(true);
   });
 });

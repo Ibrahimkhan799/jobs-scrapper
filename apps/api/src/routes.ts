@@ -9,6 +9,11 @@ import {
   searchProfileSchema,
   userSettingsSchema,
   emailAccountSchema,
+  aiCredentialSchema,
+  AI_PROVIDER_PRESETS,
+  DEFAULT_EMAIL_BODY,
+  DEFAULT_EMAIL_SUBJECT,
+  presetById,
 } from '@job-hunter/shared';
 import { getCurrentUser, requireProfile } from './services/context.js';
 import { updateCandidate, uploadResume } from './services/candidate.js';
@@ -18,12 +23,15 @@ import {
   approveApplication,
   generateApplication,
   patchStatus,
+  processAutomatedSends,
+  saveApplicationDraft,
   sendApplication,
   sendFollowUp,
 } from './services/applications.js';
 import { getAnalytics, getDashboard } from './services/analytics.js';
 import { sourceRegistry } from './scrapers/index.js';
 import { badRequest, notFound } from './lib/errors.js';
+import { getAiStatus, maskSecret, providerFromCredential } from './ai/providers.js';
 
 async function userId() {
   return (await getCurrentUser()).id;
@@ -246,6 +254,11 @@ export async function registerRoutes(app: FastifyInstance) {
     });
   });
 
+  app.post('/api/applications/auto-send', async () => {
+    const id = await userId();
+    return processAutomatedSends(id);
+  });
+
   app.get('/api/applications/:id', async (request) => {
     const id = await userId();
     const params = request.params as { id: string };
@@ -279,6 +292,13 @@ export async function registerRoutes(app: FastifyInstance) {
     const id = await userId();
     const params = request.params as { id: string };
     return sendFollowUp(id, params.id);
+  });
+
+  app.patch('/api/applications/:id/draft', async (request) => {
+    const id = await userId();
+    const params = request.params as { id: string };
+    const draft = parse(applicationEmailDraftSchema.partial(), request.body);
+    return saveApplicationDraft(id, params.id, draft);
   });
 
   app.patch('/api/applications/:id/status', async (request) => {
@@ -362,7 +382,24 @@ export async function registerRoutes(app: FastifyInstance) {
         enabled: true,
       },
     });
-    return { settings: user.settings, emailAccounts: accounts };
+    const credentials = await prisma.aiCredential.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: 'desc' },
+    });
+    return {
+      settings: {
+        ...user.settings,
+        emailTemplateSubject: user.settings?.emailTemplateSubject ?? DEFAULT_EMAIL_SUBJECT,
+        emailTemplateBody: user.settings?.emailTemplateBody ?? DEFAULT_EMAIL_BODY,
+      },
+      emailAccounts: accounts,
+      aiCredentials: credentials.map((row) => ({
+        ...row,
+        apiKey: maskSecret(row.apiKey),
+      })),
+      aiStatus: await getAiStatus(user.id),
+      aiPresets: AI_PROVIDER_PRESETS,
+    };
   });
 
   app.put('/api/settings', async (request) => {
@@ -391,6 +428,80 @@ export async function registerRoutes(app: FastifyInstance) {
       },
     });
   });
+
+  app.post('/api/ai-credentials', async (request) => {
+    const id = await userId();
+    const data = parse(aiCredentialSchema, request.body);
+    const preset = presetById(data.provider);
+    if (preset?.needsKey && !data.apiKey?.trim()) {
+      throw badRequest('API key is required for this provider');
+    }
+    if (data.provider === 'custom' && !data.baseUrl?.trim()) {
+      throw badRequest('Base URL is required for a custom OpenAI-compatible provider');
+    }
+    const created = await prisma.aiCredential.create({
+      data: {
+        userId: id,
+        provider: data.provider,
+        label: data.label,
+        apiKey: data.apiKey ?? '',
+        baseUrl: data.baseUrl || undefined,
+        model: data.model || undefined,
+        enabled: data.enabled ?? true,
+      },
+    });
+    await prisma.userSettings.upsert({
+      where: { userId: id },
+      update: { activeAiCredentialId: created.id },
+      create: { userId: id, activeAiCredentialId: created.id },
+    });
+    return { ...created, apiKey: maskSecret(created.apiKey) };
+  });
+
+  app.post('/api/ai-credentials/:id/activate', async (request) => {
+    const id = await userId();
+    const params = request.params as { id: string };
+    const row = await prisma.aiCredential.findFirst({ where: { id: params.id, userId: id } });
+    if (!row) throw notFound('AI credential not found');
+    await prisma.userSettings.upsert({
+      where: { userId: id },
+      update: { activeAiCredentialId: row.id },
+      create: { userId: id, activeAiCredentialId: row.id },
+    });
+    return { ok: true };
+  });
+
+  app.post('/api/ai-credentials/:id/test', async (request) => {
+    const id = await userId();
+    const params = request.params as { id: string };
+    const row = await prisma.aiCredential.findFirst({ where: { id: params.id, userId: id } });
+    if (!row) throw notFound('AI credential not found');
+    try {
+      const provider = providerFromCredential(row);
+      if (!(await provider.available())) {
+        return { ok: false, message: 'Provider is not reachable. Check the key, base URL, and model.' };
+      }
+      await provider.completeJson(
+        'Return JSON {"ok": true, "note": "ping"}',
+        z.object({ ok: z.boolean() }),
+      );
+      await prisma.aiCredential.update({ where: { id: row.id }, data: { lastError: null } });
+      return { ok: true, message: `Connected to ${row.label}` };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Test failed';
+      await prisma.aiCredential.update({ where: { id: row.id }, data: { lastError: message } });
+      return { ok: false, message };
+    }
+  });
+
+  app.delete('/api/ai-credentials/:id', async (request) => {
+    const id = await userId();
+    const params = request.params as { id: string };
+    await prisma.aiCredential.deleteMany({ where: { id: params.id, userId: id } });
+    return { ok: true };
+  });
+
+  app.get('/api/ai/status', async () => getAiStatus(await userId()));
 
   app.get('/api/activity', async () => {
     const id = await userId();
