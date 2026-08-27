@@ -4,31 +4,19 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  Bell,
-  Briefcase,
-  ChartColumn,
-  Inbox,
-  LayoutDashboard,
-  Moon,
-  Search,
-  Settings,
-  Sun,
-  UserRound,
-} from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { api, apiSend } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { Button } from './ui/button';
 
 const NAV = [
-  { href: '/', label: 'Dashboard', icon: LayoutDashboard, key: 'd' },
-  { href: '/jobs', label: 'Jobs', icon: Briefcase, key: 'j' },
-  { href: '/applications', label: 'Applications', icon: Inbox, key: 'a' },
-  { href: '/profile', label: 'Profile', icon: UserRound, key: 'p' },
-  { href: '/search', label: 'Search', icon: Search, key: 's' },
-  { href: '/analytics', label: 'Analytics', icon: ChartColumn, key: 'n' },
-  { href: '/settings', label: 'Settings', icon: Settings, key: ',' },
+  { href: '/', label: 'Today', key: 'd' },
+  { href: '/jobs', label: 'Jobs', key: 'j' },
+  { href: '/applications', label: 'Applications', key: 'a' },
+  { href: '/profile', label: 'Profile', key: 'p' },
+  { href: '/search', label: 'Search', key: 's' },
+  { href: '/analytics', label: 'Analytics', key: 'n' },
+  { href: '/settings', label: 'Settings', key: ',' },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -75,10 +63,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-screen">
-      <aside className="sticky top-0 hidden h-screen w-[220px] shrink-0 flex-col border-r border-border bg-sidebar p-3 md:flex">
-        <div className="mb-4 px-2 pt-1">
-          <div className="text-sm font-semibold tracking-tight">Job Hunter</div>
-          <div className="text-[11px] text-muted-foreground">Local AI matching</div>
+      <aside className="sticky top-0 hidden h-screen w-[200px] shrink-0 flex-col border-r border-border bg-sidebar px-3 py-4 md:flex">
+        <div className="mb-6 px-2">
+          <div className="text-[15px] font-medium tracking-[-0.03em]">Job Hunter</div>
+          <div className="mt-0.5 text-[11px] text-muted-foreground">Local matching</div>
         </div>
         <nav className="flex flex-1 flex-col gap-0.5">
           {NAV.map((item) => {
@@ -88,53 +76,59 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  'flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground',
+                  'px-2 py-1.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground',
                   active && 'bg-muted text-foreground',
                 )}
               >
-                <item.icon className="size-4" />
                 {item.label}
               </Link>
             );
           })}
         </nav>
         <p className="px-2 text-[10px] leading-4 text-muted-foreground">
-          Match Score is similarity, not a hiring probability. g then d/j/a for shortcuts.
+          Match Score is similarity, not a hiring probability.
         </p>
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-20 flex h-12 items-center justify-between border-b border-border bg-background/90 px-4 backdrop-blur">
-          <div className="text-sm font-medium md:hidden">Job Hunter</div>
+        <header className="sticky top-0 z-20 flex h-11 items-center justify-between border-b border-border bg-background/95 px-4">
+          <nav className="flex gap-3 overflow-x-auto text-sm md:hidden">
+            {NAV.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  'shrink-0 py-2 text-muted-foreground',
+                  (item.href === '/' ? pathname === '/' : pathname.startsWith(item.href)) && 'text-foreground',
+                )}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
           <div className="ml-auto flex items-center gap-1">
             <Button
               variant="ghost"
-              size="icon"
+              size="sm"
               aria-label="Notifications"
               onClick={() => setOpenNotes((v) => !v)}
             >
-              <span className="relative">
-                <Bell className="size-4" />
-                {unread > 0 ? (
-                  <span className="absolute -right-1 -top-1 h-1.5 w-1.5 rounded-full bg-accent" />
-                ) : null}
-              </span>
+              Notices{unread > 0 ? ` (${unread})` : ''}
             </Button>
             <Button
               variant="ghost"
-              size="icon"
+              size="sm"
               aria-label="Toggle theme"
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
             >
-              <Sun className="size-4 dark:hidden" />
-              <Moon className="hidden size-4 dark:block" />
+              {theme === 'dark' ? 'Light' : 'Dark'}
             </Button>
           </div>
         </header>
         {openNotes ? (
-          <div className="absolute right-4 top-12 z-30 w-80 rounded-md border border-border bg-card p-2 shadow-sm">
+          <div className="absolute right-4 top-11 z-30 w-80 border border-border bg-card p-2 shadow-[0_8px_24px_-12px_rgba(28,30,28,0.35)]">
             <div className="mb-2 flex items-center justify-between px-1">
               <span className="text-xs font-medium">Notifications</span>
-              <button className="text-xs text-accent" onClick={() => markRead.mutate()}>
+              <button className="text-xs text-score" onClick={() => markRead.mutate()}>
                 Mark all read
               </button>
             </div>
@@ -144,7 +138,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   <Link
                     key={note.id}
                     href={note.href ?? '/'}
-                    className="block rounded-md px-2 py-1.5 hover:bg-muted"
+                    className="block px-2 py-1.5 hover:bg-muted"
                     onClick={() => setOpenNotes(false)}
                   >
                     <div className="text-xs font-medium">{note.title}</div>
@@ -152,14 +146,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   </Link>
                 ))
               ) : (
-                <div className="px-2 py-6 text-center text-xs text-muted-foreground">
-                  No notifications
-                </div>
+                <div className="px-2 py-6 text-center text-xs text-muted-foreground">No notifications</div>
               )}
             </div>
           </div>
         ) : null}
-        <main className="mx-auto w-full max-w-[1200px] flex-1 px-4 py-5">{children}</main>
+        <main className="mx-auto w-full max-w-[1180px] flex-1 px-4 py-6">{children}</main>
       </div>
     </div>
   );

@@ -6,6 +6,7 @@ import { api, apiSend } from '@/lib/api';
 import { PageHeader, Skeleton } from '@/components/ui/page';
 import { Button } from '@/components/ui/button';
 import { Input, Label, Textarea } from '@/components/ui/forms';
+import { Select } from '@/components/ui/select';
 
 type Preset = {
   id: string;
@@ -137,7 +138,7 @@ export default function SettingsPage() {
         description="Auto-send is off until you enable it. API keys stay on the server and are never sent back in full."
       />
 
-      <section className="mb-8 max-w-xl rounded-md border border-border p-4">
+      <section className="mb-8 max-w-xl border border-border p-4">
         <h2 className="text-sm font-medium">Automated sending</h2>
         <p className="mt-1 text-xs text-muted-foreground">
           When this is on, applications that meet your minimum Match Score and have a recruiting email
@@ -157,7 +158,7 @@ export default function SettingsPage() {
             });
           }}
         >
-          <label className="flex items-start gap-2 rounded-md border border-border bg-muted/40 p-3 text-sm">
+          <label className="flex items-start gap-2 border border-border bg-muted/40 p-3 text-sm">
             <input
               type="checkbox"
               name="allowAutomatedSending"
@@ -196,7 +197,7 @@ export default function SettingsPage() {
         </p>
         <div className="mb-3 space-y-2">
           {settings.data?.aiCredentials.map((cred) => (
-            <div key={cred.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border px-3 py-2">
+            <div key={cred.id} className="flex flex-wrap items-center justify-between gap-2 border border-border px-3 py-2">
               <div>
                 <div className="text-sm font-medium">
                   {cred.label}{' '}
@@ -218,7 +219,7 @@ export default function SettingsPage() {
           ))}
         </div>
         <form
-          className="grid gap-3 rounded-md border border-border p-3 md:grid-cols-2"
+          className="grid gap-3 border border-border p-3 md:grid-cols-2"
           onSubmit={(event) => {
             event.preventDefault();
             const form = new FormData(event.currentTarget);
@@ -237,11 +238,15 @@ export default function SettingsPage() {
         >
           <div>
             <Label>Service</Label>
-            <select name="provider" className="mt-1 h-8 w-full rounded-md border border-border bg-background px-2 text-sm" defaultValue="grok">
-              {settings.data?.aiPresets.map((preset) => (
-                <option key={preset.id} value={preset.id}>{preset.label}</option>
-              ))}
-            </select>
+            <Select
+              name="provider"
+              className="mt-1"
+              defaultValue="grok"
+              options={(settings.data?.aiPresets ?? []).map((preset) => ({
+                value: preset.id,
+                label: preset.label,
+              }))}
+            />
           </div>
           <Field name="label" label="Label" placeholder="Personal Grok key" />
           <Field name="apiKey" label="API key" type="password" placeholder="Paste key — stored locally" />
@@ -296,13 +301,13 @@ export default function SettingsPage() {
       <h2 className="mb-2 text-sm font-medium">Email accounts</h2>
       <div className="mb-4 space-y-2">
         {settings.data?.emailAccounts.map((account) => (
-          <div key={account.id} className="rounded-md border border-border px-3 py-2 text-sm">
+          <div key={account.id} className="border border-border px-3 py-2 text-sm">
             {account.provider} · {account.fromEmail} · {account.host} {account.enabled ? '' : '(disabled)'}
           </div>
         ))}
       </div>
       <form
-        className="mb-8 grid max-w-xl gap-3 rounded-md border border-border p-3 md:grid-cols-2"
+        className="mb-8 grid max-w-xl gap-3 border border-border p-3 md:grid-cols-2"
         onSubmit={(event) => {
           event.preventDefault();
           const form = new FormData(event.currentTarget);
@@ -320,11 +325,16 @@ export default function SettingsPage() {
       >
         <div>
           <Label>Provider</Label>
-          <select name="provider" className="mt-1 h-8 w-full rounded-md border border-border bg-background px-2 text-sm">
-            <option value="smtp">SMTP</option>
-            <option value="gmail">Gmail</option>
-            <option value="outlook">Outlook</option>
-          </select>
+          <Select
+            name="provider"
+            className="mt-1"
+            defaultValue="smtp"
+            options={[
+              { value: 'smtp', label: 'SMTP' },
+              { value: 'gmail', label: 'Gmail' },
+              { value: 'outlook', label: 'Outlook' },
+            ]}
+          />
         </div>
         <Field name="host" label="Host" placeholder="smtp.example.com" />
         <Field name="port" label="Port" placeholder="587" />
@@ -348,7 +358,7 @@ export default function SettingsPage() {
       </p>
       <div className="space-y-2">
         {sources.data?.map((source) => (
-          <div key={source.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border px-3 py-2">
+          <div key={source.id} className="flex flex-wrap items-center justify-between gap-2 border border-border px-3 py-2">
             <div>
               <div className="text-sm font-medium">{source.name}</div>
               <div className="text-xs text-muted-foreground">{source.description}</div>

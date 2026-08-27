@@ -3,7 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { api } from '@/lib/api';
-import { PageHeader, Metric, Skeleton } from '@/components/ui/page';
+import { PageHeader, StatusStrip, Skeleton } from '@/components/ui/page';
 
 type Analytics = {
   jobsDiscovered: number;
@@ -35,16 +35,18 @@ export default function AnalyticsPage() {
   return (
     <div>
       <PageHeader title="Analytics" description={data.disclaimer} />
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Metric label="Jobs discovered" value={data.jobsDiscovered} />
-        <Metric label="Jobs matched" value={data.jobsMatched} />
-        <Metric label="Applications sent" value={data.applicationsSent} />
-        <Metric label="Avg match score" value={data.averageMatchScore} />
-        <Metric label="Response rate" value={`${data.responseRate}%`} />
-        <Metric label="Interview rate" value={`${data.interviewRate}%`} />
-        <Metric label="Offer rate" value={`${data.offerRate}%`} />
-      </div>
-      <div className="mt-8 grid gap-6 lg:grid-cols-3">
+      <StatusStrip
+        items={[
+          { label: 'discovered', value: data.jobsDiscovered },
+          { label: 'matched', value: data.jobsMatched },
+          { label: 'sent', value: data.applicationsSent },
+          { label: 'avg score', value: data.averageMatchScore },
+          { label: 'response', value: `${data.responseRate}%` },
+          { label: 'interview', value: `${data.interviewRate}%` },
+          { label: 'offer', value: `${data.offerRate}%` },
+        ]}
+      />
+      <div className="mt-8 grid gap-8 lg:grid-cols-3">
         <Chart title="By location" rows={toRows(data.byLocation)} />
         <Chart title="By role" rows={toRows(data.byRole)} />
         <Chart title="By source" rows={toRows(data.bySource)} />
@@ -55,16 +57,22 @@ export default function AnalyticsPage() {
 
 function Chart({ title, rows }: { title: string; rows: Array<{ name: string; value: number }> }) {
   return (
-    <section className="rounded-md border border-border p-3">
+    <section>
       <h2 className="mb-3 text-sm font-medium">{title}</h2>
       <div className="h-56">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={rows} layout="vertical" margin={{ left: 8, right: 8 }}>
-            <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border)" />
             <XAxis type="number" hide />
-            <YAxis type="category" dataKey="name" width={90} tick={{ fontSize: 11 }} />
-            <Tooltip />
-            <Bar dataKey="value" fill="var(--accent)" radius={[0, 4, 4, 0]} />
+            <YAxis type="category" dataKey="name" width={90} tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} />
+            <Tooltip
+              contentStyle={{
+                background: 'var(--card)',
+                border: '1px solid var(--border)',
+                fontSize: 12,
+              }}
+            />
+            <Bar dataKey="value" fill="var(--score)" radius={0} />
           </BarChart>
         </ResponsiveContainer>
       </div>

@@ -9,6 +9,7 @@ import { formatDate, formatSalary, remoteLabel } from '@/lib/utils';
 import { PageHeader, EmptyState, Skeleton } from '@/components/ui/page';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/forms';
+import { Select } from '@/components/ui/select';
 import { ScoreBadge, ScoreMeta } from '@/components/score-badge';
 
 type JobList = {
@@ -76,7 +77,7 @@ export default function JobsPage() {
     onError: (error: Error) => toast.error(error.message),
   });
 
-  const archive = useMutation({
+  const analyze = useMutation({
     mutationFn: (id: string) => apiSend(`/jobs/${id}/analyze`, 'POST'),
     onSuccess: () => {
       toast.success('Analyzed');
@@ -96,30 +97,45 @@ export default function JobsPage() {
         }
       />
       <div className="mb-4 grid grid-cols-2 gap-2 md:grid-cols-6">
-        <Input placeholder="Search title or company" value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} />
+        <Input placeholder="Title or company" value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} />
         <Input placeholder="Min score" type="number" value={minScore} onChange={(e) => { setMinScore(e.target.value); setPage(1); }} />
-        <select className="h-8 rounded-md border border-border bg-background px-2 text-sm" value={remote} onChange={(e) => { setRemote(e.target.value); setPage(1); }}>
-          <option value="">Remote: any</option>
-          <option value="REMOTE">Remote</option>
-          <option value="HYBRID">Hybrid</option>
-          <option value="ONSITE">On-site</option>
-        </select>
-        <select className="h-8 rounded-md border border-border bg-background px-2 text-sm" value={hasEmail} onChange={(e) => { setHasEmail(e.target.value); setPage(1); }}>
-          <option value="">Apply method</option>
-          <option value="true">Email available</option>
-          <option value="false">Manual only</option>
-        </select>
+        <Select
+          aria-label="Remote"
+          value={remote}
+          onChange={(next) => { setRemote(next); setPage(1); }}
+          options={[
+            { value: '', label: 'Remote: any' },
+            { value: 'REMOTE', label: 'Remote' },
+            { value: 'HYBRID', label: 'Hybrid' },
+            { value: 'ONSITE', label: 'On-site' },
+          ]}
+        />
+        <Select
+          aria-label="Apply method"
+          value={hasEmail}
+          onChange={(next) => { setHasEmail(next); setPage(1); }}
+          options={[
+            { value: '', label: 'Apply method' },
+            { value: 'true', label: 'Email available' },
+            { value: 'false', label: 'Manual only' },
+          ]}
+        />
         <Input placeholder="Source key" value={source} onChange={(e) => { setSource(e.target.value); setPage(1); }} />
-        <select className="h-8 rounded-md border border-border bg-background px-2 text-sm" value={sort} onChange={(e) => setSort(e.target.value)}>
-          <option value="match">Sort: Match</option>
-          <option value="date">Sort: Date</option>
-          <option value="salary">Sort: Salary</option>
-          <option value="company">Sort: Company</option>
-          <option value="location">Sort: Location</option>
-        </select>
+        <Select
+          aria-label="Sort"
+          value={sort}
+          onChange={setSort}
+          options={[
+            { value: 'match', label: 'Sort: Match' },
+            { value: 'date', label: 'Sort: Date' },
+            { value: 'salary', label: 'Sort: Salary' },
+            { value: 'company', label: 'Sort: Company' },
+            { value: 'location', label: 'Sort: Location' },
+          ]}
+        />
       </div>
       {jobs.isLoading ? (
-        <div className="space-y-2">{Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-16" />)}</div>
+        <div className="space-y-2">{Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-14" />)}</div>
       ) : jobs.error ? (
         <p className="text-sm text-danger">Failed to load jobs.</p>
       ) : !jobs.data?.items.length ? (
@@ -128,7 +144,7 @@ export default function JobsPage() {
           body="Upload a CV, configure a search profile, then run discovery. Public sources such as Remotive are used when enabled."
         />
       ) : (
-        <div className="overflow-hidden rounded-md border border-border">
+        <div className="border-t border-border">
           {jobs.data.items
             .slice()
             .sort((a, b) =>
@@ -139,7 +155,7 @@ export default function JobsPage() {
             .map((job) => {
               const match = job.matches?.[0];
               return (
-                <div key={job.id} className="grid grid-cols-[auto_1fr_auto] items-start gap-3 border-b border-border px-3 py-2.5 last:border-0">
+                <div key={job.id} className="grid grid-cols-[auto_1fr_auto] items-start gap-3 border-b border-border py-2.5">
                   <div>
                     <ScoreBadge score={match?.matchScore} />
                     <div className="mt-1"><ScoreMeta score={match?.matchScore} /></div>
@@ -152,21 +168,21 @@ export default function JobsPage() {
                     <div className="mt-0.5 text-xs text-muted-foreground">
                       {job.company.name} · {job.location ?? '—'} · {remoteLabel(job.remoteType)} · {formatSalary(job.salaryMin, job.salaryMax, job.currency ?? 'USD')} · {job.source.name} · {formatDate(job.postedAt)}
                     </div>
-                    <div className="mt-1 flex flex-wrap gap-1">
+                    <div className="mt-1 flex flex-wrap gap-x-2 gap-y-0.5 text-[11px]">
                       {(match?.matchedSkills ?? job.skills.map((s) => s.skill.name)).slice(0, 6).map((skill) => (
-                        <span key={skill} className="rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[10px] text-emerald-700 dark:text-emerald-400">{skill}</span>
+                        <span key={skill} className="text-score">{skill}</span>
                       ))}
                       {(match?.missingRequiredSkills ?? []).slice(0, 4).map((skill) => (
-                        <span key={skill} className="rounded-md bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">{skill}</span>
+                        <span key={skill} className="text-muted-foreground">{skill}</span>
                       ))}
-                      <span className="rounded-md bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                      <span className="text-muted-foreground">
                         {job.applicationEmail ? 'Email apply' : 'Manual application required'}
                       </span>
                     </div>
                   </div>
-                  <div className="flex flex-col gap-1">
+                  <div className="flex flex-col items-end gap-1">
                     <Button asChild size="sm" variant="outline"><Link href={`/jobs/${job.id}`}>View</Link></Button>
-                    <Button size="sm" variant="ghost" onClick={() => archive.mutate(job.id)}>Analyze</Button>
+                    <Button size="sm" variant="ghost" onClick={() => analyze.mutate(job.id)}>Analyze</Button>
                     {job.applicationUrl ? (
                       <Button asChild size="sm" variant="ghost"><a href={job.applicationUrl} target="_blank" rel="noreferrer">Open</a></Button>
                     ) : null}
@@ -177,7 +193,7 @@ export default function JobsPage() {
         </div>
       )}
       <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
-        <span>{jobs.data?.total ?? 0} jobs</span>
+        <span className="tabular">{jobs.data?.total ?? 0} jobs</span>
         <div className="flex gap-2">
           <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Previous</Button>
           <Button size="sm" variant="outline" onClick={() => setPage((p) => p + 1)}>Next</Button>

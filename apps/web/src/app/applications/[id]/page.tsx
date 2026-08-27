@@ -110,7 +110,7 @@ export default function ApplicationReviewPage() {
         }
       />
       {!app.recipientEmail ? (
-        <div className="mb-4 rounded-md border border-border p-3 text-sm">
+        <div className="mb-4 border border-border p-3 text-sm">
           <div className="font-medium">Manual application required</div>
           <p className="mt-1 text-xs text-muted-foreground">No recruiting email was found. Use the job application URL.</p>
           {app.job.applicationUrl ? (
@@ -136,7 +136,7 @@ export default function ApplicationReviewPage() {
           </div>
         </div>
         <aside className="space-y-3">
-          <div className="rounded-md border border-border p-3">
+          <div className="border border-border p-3">
             <div className="mb-2 flex items-center gap-2">
               <ScoreBadge score={score} />
               <span className="text-xs text-muted-foreground">Job Match Score</span>
@@ -147,7 +147,7 @@ export default function ApplicationReviewPage() {
             <div className="text-xs">CV attachment: {app.attachCv ? 'Yes' : 'No'}</div>
           </div>
           {app.emails.map((email) => (
-            <div key={email.id} className="rounded-md border border-border p-3 text-xs">
+            <div key={email.id} className="border border-border p-3 text-xs">
               <div>{email.status} → {email.recipient}</div>
               {email.error ? <div className="text-danger">{email.error}</div> : null}
             </div>
@@ -156,7 +156,7 @@ export default function ApplicationReviewPage() {
       </div>
       {confirm ? (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md rounded-md border border-border bg-card p-4">
+          <div className="w-full max-w-md border border-border bg-card p-4">
             <h2 className="text-sm font-semibold">Send this email?</h2>
             <p className="mt-2 text-sm text-muted-foreground">
               This sends a real email if SMTP is configured. Automated sending stays off unless you enable it in settings.

@@ -48,23 +48,23 @@ export default function ApplicationsPage() {
     <div>
       <PageHeader
         title="Applications"
-        description="Drag cards between columns. Status changes are logged."
+        description="Move listings between columns. Status changes are logged. Sending still needs approval unless auto-send is on."
       />
-      <div className="flex gap-3 overflow-x-auto pb-4">
+      <div className="flex gap-4 overflow-x-auto pb-4">
         {APPLICATION_STATUSES.map((status) => {
           const cards = list.data!.filter((item) => item.status === status);
           return (
             <section
               key={status}
-              className="w-56 shrink-0 rounded-md border border-border bg-muted/40 p-2"
+              className="w-52 shrink-0"
               onDragOver={(event) => event.preventDefault()}
               onDrop={(event) => {
                 const id = event.dataTransfer.getData('text/plain');
                 if (id) move.mutate({ id, status });
               }}
             >
-              <div className="mb-2 flex items-center justify-between px-1">
-                <h2 className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+              <div className="mb-2 flex items-baseline justify-between border-b border-border pb-1">
+                <h2 className="text-xs font-medium text-muted-foreground">
                   {status.replace('_', ' ')}
                 </h2>
                 <span className="text-[11px] tabular text-muted-foreground">{cards.length}</span>
@@ -75,7 +75,7 @@ export default function ApplicationsPage() {
                     key={item.id}
                     draggable
                     onDragStart={(event) => event.dataTransfer.setData('text/plain', item.id)}
-                    className="cursor-grab rounded-md border border-border bg-card p-2 active:cursor-grabbing"
+                    className="cursor-grab border-b border-border py-2 active:cursor-grabbing"
                   >
                     <div className="flex items-start justify-between gap-2">
                       <Link href={`/applications/${item.id}`} className="text-xs font-medium leading-4 hover:underline">
@@ -84,7 +84,7 @@ export default function ApplicationsPage() {
                       <ScoreBadge score={item.job.matches?.[0]?.matchScore} />
                     </div>
                     <div className="mt-1 text-[11px] text-muted-foreground">{item.job.company.name}</div>
-                    <div className="mt-1 text-[10px] uppercase text-muted-foreground">
+                    <div className="mt-0.5 text-[10px] text-muted-foreground">
                       {item.job.applicationEmail ? 'Email' : 'Manual'}
                     </div>
                   </article>

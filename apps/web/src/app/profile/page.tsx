@@ -7,6 +7,7 @@ import { api, apiSend } from '@/lib/api';
 import { PageHeader, EmptyState, Skeleton } from '@/components/ui/page';
 import { Button } from '@/components/ui/button';
 import { Input, Label, Textarea } from '@/components/ui/forms';
+import { Select } from '@/components/ui/select';
 
 type Profile = {
   fullName: string | null;
@@ -73,7 +74,7 @@ export default function ProfilePage() {
         title="Candidate profile"
         description="Upload a CV. Parsing works without AI. Edit any field afterward — nothing is invented if it was not in the file."
       />
-      <div className="mb-6 rounded-md border border-border p-3">
+      <div className="mb-6 border border-border p-3">
         <Label>Resume (PDF or DOCX)</Label>
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <Input type="file" accept=".pdf,.docx,application/pdf" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
@@ -125,12 +126,17 @@ export default function ProfilePage() {
           <Field name="yearsOfExperience" label="Years of experience" defaultValue={profile.yearsOfExperience} type="number" />
           <div>
             <Label>Remote preference</Label>
-            <select name="remotePreference" defaultValue={profile.remotePreference} className="mt-1 h-8 w-full rounded-md border border-border bg-background px-2 text-sm">
-              <option value="REMOTE">Remote</option>
-              <option value="HYBRID">Hybrid</option>
-              <option value="ONSITE">On-site</option>
-              <option value="ANY">Any</option>
-            </select>
+            <Select
+              name="remotePreference"
+              className="mt-1"
+              defaultValue={profile.remotePreference}
+              options={[
+                { value: 'REMOTE', label: 'Remote' },
+                { value: 'HYBRID', label: 'Hybrid' },
+                { value: 'ONSITE', label: 'On-site' },
+                { value: 'ANY', label: 'Any' },
+              ]}
+            />
           </div>
           <Field name="salaryMin" label="Salary min" defaultValue={profile.salaryMin} type="number" />
           <Field name="salaryMax" label="Salary max" defaultValue={profile.salaryMax} type="number" />

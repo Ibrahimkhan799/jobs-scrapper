@@ -58,8 +58,8 @@ function Bar({ label, value }: { label: string; value: number }) {
         <span>{label}</span>
         <span className="tabular">{value}</span>
       </div>
-      <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-        <div className="h-full bg-accent" style={{ width: `${value}%` }} />
+      <div className="h-1 overflow-hidden bg-muted">
+        <div className="h-full bg-score" style={{ width: `${value}%` }} />
       </div>
     </div>
   );
@@ -114,13 +114,13 @@ export default function JobDetailPage() {
         }
       />
       {job.data.isDemo ? (
-        <p className="mb-4 rounded-md border border-border bg-muted px-3 py-2 text-xs text-muted-foreground">
+        <p className="mb-4 border border-border bg-muted px-3 py-2 text-xs text-muted-foreground">
           Seeded demo listing. Not a real job opening.
         </p>
       ) : null}
       <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
         <div className="space-y-5">
-          <section className="rounded-md border border-border p-4">
+          <section className="border border-border p-4">
             <div className="mb-3 flex items-center gap-3">
               <ScoreBadge score={match?.matchScore} />
               <div>
@@ -141,10 +141,10 @@ export default function JobDetailPage() {
             {match?.reasoning ? <p className="mt-3 text-sm text-muted-foreground">{match.reasoning}</p> : null}
             <div className="mt-3 flex flex-wrap gap-1">
               {match?.matchedSkills.map((s) => (
-                <span key={s} className="rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[11px] text-emerald-700 dark:text-emerald-400">{s}</span>
+                <span key={s} className="text-[11px] text-score">{s}</span>
               ))}
               {match?.missingRequiredSkills.map((s) => (
-                <span key={s} className="rounded-md bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">Missing {s}</span>
+                <span key={s} className="text-[11px] text-muted-foreground">Missing {s}</span>
               ))}
             </div>
             {match?.concerns?.length ? (
@@ -171,7 +171,7 @@ export default function JobDetailPage() {
           ) : null}
         </div>
         <aside className="space-y-3">
-          <div className="rounded-md border border-border p-3 text-sm">
+          <div className="border border-border p-3 text-sm">
             <div className="text-xs text-muted-foreground">Salary</div>
             <div>{formatSalary(job.data.salaryMin, job.data.salaryMax, job.data.currency ?? 'USD')}</div>
             <div className="mt-2 text-xs text-muted-foreground">Posted</div>
@@ -181,7 +181,7 @@ export default function JobDetailPage() {
             <div className="mt-2 text-xs text-muted-foreground">Employment</div>
             <div>{job.data.employmentType.replace('_', ' ')}</div>
           </div>
-          <div className="rounded-md border border-border p-3">
+          <div className="border border-border p-3">
             <div className="text-sm font-medium">Application</div>
             {job.data.applicationEmail ? (
               <p className="mt-1 text-xs text-muted-foreground">{job.data.applicationEmail}</p>

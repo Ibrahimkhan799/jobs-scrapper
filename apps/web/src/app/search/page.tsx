@@ -6,6 +6,7 @@ import { api, apiSend } from '@/lib/api';
 import { PageHeader, EmptyState, Skeleton } from '@/components/ui/page';
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/forms';
+import { Select } from '@/components/ui/select';
 
 type SearchProfile = {
   id: string;
@@ -57,7 +58,7 @@ export default function SearchPage() {
         description="Queries are generated from titles × locations, capped to avoid redundant searches. Automated sending defaults to off."
       />
       <form
-        className="mb-6 grid gap-3 rounded-md border border-border p-3 md:grid-cols-2"
+        className="mb-6 grid gap-3 border border-border p-3 md:grid-cols-2"
         onSubmit={(event) => {
           event.preventDefault();
           const form = new FormData(event.currentTarget);
@@ -86,12 +87,17 @@ export default function SearchPage() {
         <Field name="name" label="Name" placeholder="Frontend · GCC + Remote" />
         <div>
           <Label>Remote</Label>
-          <select name="remotePreference" defaultValue="REMOTE" className="mt-1 h-8 w-full rounded-md border border-border bg-background px-2 text-sm">
-            <option value="REMOTE">Remote</option>
-            <option value="HYBRID">Hybrid</option>
-            <option value="ONSITE">On-site</option>
-            <option value="ANY">Any</option>
-          </select>
+          <Select
+            name="remotePreference"
+            className="mt-1"
+            defaultValue="REMOTE"
+            options={[
+              { value: 'REMOTE', label: 'Remote' },
+              { value: 'HYBRID', label: 'Hybrid' },
+              { value: 'ONSITE', label: 'On-site' },
+              { value: 'ANY', label: 'Any' },
+            ]}
+          />
         </div>
         <Field name="targetTitles" label="Target titles" placeholder="Frontend Developer, React Developer, Next.js Developer" />
         <Field name="targetLocations" label="Target locations" placeholder="Remote, Dubai, Riyadh, Doha, Abu Dhabi" />
@@ -115,7 +121,7 @@ export default function SearchPage() {
       ) : (
         <div className="space-y-3">
           {list.data.map((profile) => (
-            <article key={profile.id} className="rounded-md border border-border p-3">
+            <article key={profile.id} className="border border-border p-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <div className="text-sm font-medium">{profile.name}</div>
@@ -131,7 +137,7 @@ export default function SearchPage() {
               <div className="mt-2 text-xs text-muted-foreground">{profile.targetTitles.join(' · ')}</div>
               <div className="mt-2 flex flex-wrap gap-1">
                 {profile.queries.map((q) => (
-                  <span key={q.id} className="rounded-md bg-muted px-1.5 py-0.5 text-[11px]">{q.query}</span>
+                  <span key={q.id} className="bg-muted px-1.5 py-0.5 text-[11px]">{q.query}</span>
                 ))}
               </div>
             </article>

@@ -16,7 +16,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <QueryClientProvider client={client}>
         {children}
-        <Toaster position="bottom-right" richColors closeButton />
+        <Toaster
+          position="bottom-right"
+          closeButton
+          toastOptions={{
+            className: 'font-sans border border-border bg-card text-foreground',
+          }}
+        />
       </QueryClientProvider>
     </ThemeProvider>
   );
