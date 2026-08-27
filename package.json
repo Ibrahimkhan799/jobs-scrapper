@@ -1,0 +1,33 @@
+{
+  "name": "ai-job-hunter",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Local-first AI Job Hunter: discover, match, and apply to jobs from your CV.",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n api,web -c blue,green \"npm run dev -w @job-hunter/api\" \"npm run dev -w @job-hunter/web\"",
+    "build": "npm run build -w @job-hunter/shared && npm run build -w @job-hunter/database && npm run build -w @job-hunter/api && npm run build -w @job-hunter/web",
+    "start": "concurrently -n api,web -c blue,green \"npm run start -w @job-hunter/api\" \"npm run start -w @job-hunter/web\"",
+    "lint": "npm run lint -w @job-hunter/api --if-present && npm run lint -w @job-hunter/web --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "db:generate": "npm run generate -w @job-hunter/database",
+    "db:migrate": "npm run migrate -w @job-hunter/database",
+    "db:seed": "npm run seed -w @job-hunter/database",
+    "db:reset": "npm run reset -w @job-hunter/database",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "prettier": "^3.6.2",
+    "prettier-plugin-tailwindcss": "^0.6.14",
+    "typescript": "^5.9.2"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
